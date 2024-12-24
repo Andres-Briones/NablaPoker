@@ -1,30 +1,26 @@
-<!doctype html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Flask-Sock and HTMX</title>
-        <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-        <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
-        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    </head>
-    <body>
-        <h1>Flask-Sock Demo with HTMX</h1>
-        <p>Type a message and press Enter. Type <b>close</b> to end the connection.</p>
-        <div hx-ext="ws" ws-connect="/echo">
-            <form ws-send="submit">
-                <input type="text" name="message" placeholder="Enter your message">
-            </form>
-            {% include '_messages.html' %}
-        </div>
-    </body>
-    <style>
-    .messages{
-        display: flex;
-        flex-direction: rows;
-    } 
-    .message{
-        margin: 5px;
-    }
-    </style>
+{% extends "base.html" %}
 
-</html>
+{% block subtitle %}Home{% endblock %}
+
+{% block content %}
+<h1>Flask-Sock Demo with HTMX</h1>
+
+<p>Type a message and press Enter. Type <b>close</b> to end the connection.</p>
+
+<div hx-ext="ws" ws-connect="/echo">
+    <form ws-send="submit">
+        <input type="text" name="message" placeholder="Enter your message">
+    </form>
+    {% include '_messages.html' %}
+</div>
+
+<style>
+.messages{
+    display: flex;
+    flex-direction: rows;
+} 
+.message{
+    margin: 5px;
+}
+</style>
+{% endblock %}

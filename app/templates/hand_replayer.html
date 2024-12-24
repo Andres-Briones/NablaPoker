@@ -1,0 +1,51 @@
+<div class="box">
+    {% include "poker_table.html" %}
+    
+    <div id="navigation-buttons-container">
+        <button 
+            hx-get="/replayer/beginning" hx-trigger="click" hx-target="#hand-replayer-container">
+            Beginning
+        </button>
+        <button id="previous-button"
+            hx-get="/replayer/previous" hx-trigger="click" hx-target="#hand-replayer-container">
+            Previous
+        </button>
+        <button id="next-button"
+            hx-get="/replayer/next" hx-trigger="click" hx-target="#hand-replayer-container">
+            Next
+        </button>
+        <button 
+            hx-get="/replayer/end" hx-trigger="click" hx-target="#hand-replayer-container">
+            End
+        </button>
+    </div>
+</div>
+
+{% if gamestate.final_pots %} 
+<div class="box">
+    <h3>Final Pot(s)</h3>
+
+    {% for pot in gamestate.final_pots %}
+    <div>Total Pot: {{pot.amount}} | Rake: {{pot.rake}}</div>
+    <table class="pot-table" style="width:50%;">
+        <thead>
+            <tr>
+                <th>Winner</th>
+                <th>Win Amount</th>
+                <th>Rake</th>
+                <th>Cashout Fee</th>
+                <th>Cashout Amount</th>
+            </tr>
+        </thead>
+        <tbody id="potWinnersTable"></tbody>
+        {% for win in pot.player_wins %}
+        <td>{{win.name}}</td>
+        <td>{{win.win_amount}}</td>
+        <td>{{win.contributed_rake}}</td>
+        <td>{{win.cashout_fee}}</td>
+        <td>{{win.cashout_amount}}</td>
+        {% endfor %}
+    </table>
+    {% endfor %}
+</div>
+{% endif %} 
