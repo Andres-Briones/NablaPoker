@@ -3,17 +3,18 @@
 {% block subtitle %}Home{% endblock %}
 
 {% block content %}
-<h1>Flask-Sock Demo with HTMX</h1>
+<h2>Flask-Sock Demo with HTMX</h2>
 
-<p>Type a message and press Enter. Type <b>close</b> to end the connection.</p>
+<div class="box">
+    <p>Type a message and press Enter. Type <b>close</b> to end the connection.</p>
 
-<div hx-ext="ws" ws-connect="/echo">
-    <form ws-send="submit">
-        <input type="text" name="message" placeholder="Enter your message">
-    </form>
-    {% include '_messages.html' %}
+    <div hx-ext="ws" ws-connect="/echo" style="margin: 10px;">
+        <form ws-send="submit">
+            <input type="text" name="message" placeholder="Enter your message">
+        </form>
+        {% include '_messages.html' %}
+    </div>
 </div>
-
 <style>
 .messages{
     display: flex;

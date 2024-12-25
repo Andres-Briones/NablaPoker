@@ -54,7 +54,7 @@ def get_hands_list(db_path, page = 1, q = None, return_count = True):
 @replayer_bp.route('/')
 def replayer():
     db_path = session.get("db_path", None)
-    if db_path is None : return redirect('/')
+    if db_path is None : return redirect('/need_to_login')
     session["page"] = 1
     session["filter"] = None
     hands_list, count = get_hands_list(db_path, session["page"])

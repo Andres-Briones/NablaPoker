@@ -9,7 +9,7 @@ statistics_bp = Blueprint('statistics', __name__)
 @statistics_bp.route('/')
 def statistics():
     db_path = session.get("db_path", None)
-    if db_path is None : return redirect('/')
+    if db_path is None : return redirect('/need_to_login')
 
     # Update and retrieve overall statistics
     update_players_statistics(session["db_path"])

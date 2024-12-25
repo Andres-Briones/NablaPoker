@@ -18,7 +18,7 @@ header {
     align-items: center;
     background-color: #333;
     position: relative;
-    padding: 10px 0;
+    padding: 10px 20px;
 }
 
 footer{
@@ -41,7 +41,7 @@ footer{
 
 .menu p {
     color: white;
-    padding: 10px 15px;
+    padding: 10px 6px;
 }
 
 .menu a:hover {
@@ -198,4 +198,17 @@ th {
 tr.highlighted-row {
     background-color: #e0f0ff; 
     color: #2c3e50;
+}
+
+.loginForm {
+    display: flex;
+    flex-direction: column;  /* or column if you want them stacked */
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    margin: 20px;
+}
+
+.loginForm button{
+    padding: 8px;
 }

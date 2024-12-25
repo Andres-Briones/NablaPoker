@@ -19,6 +19,7 @@ def register():
         user = query_db("SELECT * FROM users WHERE username = ?", (username,), one=True)
         session['user_id'] = user['id']
         session['username'] = user['username']
+        session['db_path'] = current_app.config['HANDS_DATABASE']
         return redirect('/')
     return render_template('register.html')
 
