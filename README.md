@@ -1,53 +1,127 @@
 # NablaPoker
 
-### 1. Clone the Repository
+## Overview
 
-### 2. Set Up a Virtual Environment
+NablaPoker is an open-source poker platform currently under development.
 
-It’s recommended to use a Python virtual environment to isolate dependencies.
-On Linux/MacOS:
+## Features
 
-    python3 -m venv venv
-    source venv/bin/activate
+- **Game Platform**: Create and join poker games
+- **Replayer**: Replay previous hands
+- **Statistics**: Display the user and opponents statistics
 
-On Windows:
+## Prerequisites
 
-    python -m venv venv
-    venv\Scripts\activate
+Before you begin, ensure you have met the following requirements:
 
-### 3. Install Dependencies
+- **Python 3**: The project is built using Python 3.
+- **pip**: Python package installer for managing project dependencies.
+- **Systemd**: For managing the application as a service (optional).
 
-With the virtual environment activated, install the required dependencies:
+## Installation
 
-    pip install -r requirements.txt
+To set up NablaPoker, follow these steps:
 
-### 4. Configuration
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/Andres-Briones/NablaPoker.git
+   cd NablaPoker
+   ```
 
-The app requires configuration files for secrets and other environment-specific settings.
+2. **Make the Script Executable**
+   ```bash
+   chmod +x install.sh
+   ```
 
-Create the Instance Folder:
+3. **Run the Installation Script**
+   ```bash
+   ./install.sh
+   ```
 
-    mkdir instance
+   The `install.sh` script will:
 
-Create config.py in the instance Folder: Example configuration:
+   - Check for Python 3 and `venv` availability.
+   - Create a Python virtual environment and install dependencies from `requirements.txt`.
+   - Generate a run script (`run-nablapoker.sh`) for launching the application.
+   - Optionally set up a user-level systemd service if the user agrees and systemd is available.
 
-    SECRET_KEY = 'your-secret-key'
-    DEBUG = True
+## Running the Application
 
-The app will automatically use this file for instance-specific configurations.
+After installation, you can start the application in one of the following ways:
 
-### 5. Launch the App
+### Option 1: Using the Run Script
 
-Run the application with the following command:
+Execute the generated run script to start the app:
 
-    python run.py
+```bash
+./run-nablapoker.sh
+```
 
-### 6. Deployment
+### Option 2: Using Systemd (Optional)
 
-For production:
+If you set up the systemd service during installation, use the following commands:
 
-Use Gunicorn to run the app:
+1. Start the service:
+   ```bash
+   systemctl --user start nablapoker
+   ```
 
-    gunicorn -w 4 -b 0.0.0.0:5187 app:app
+2. Check the service status:
+   ```bash
+   systemctl --user status nablapoker
+   ```
 
-Optionally, configure Nginx to act as a reverse proxy for the app.
+3. View logs (if `journald` is used):
+   ```bash
+   journalctl --user -u nablapoker
+   ```
+
+4. Enable the service to start automatically upon login:
+   ```bash
+   systemctl --user enable nablapoker
+   ```
+
+## Uninstallation
+
+To uninstall NablaPoker and clean up the system, use the `uninstall.sh` script:
+
+1. **Make the Uninstall Script Executable**
+   ```bash
+   chmod +x uninstall.sh
+   ```
+
+2. **Run the Uninstall Script**
+   ```bash
+   ./uninstall.sh
+   ```
+
+   The `uninstall.sh` script will:
+
+   - Stop and disable the systemd service (if it exists).
+   - Remove the systemd service file.
+
+3. **Confirmation**
+   The application has been unregistered as a service. The virtual environment and source files remain intact for potential reinstallation or manual management.
+
+   If you wish to completely remove the application, delete the project directory manually:
+
+   ```bash
+   rm -rf /path/to/nablapoker
+   ```
+
+## Contributing
+
+Contributions are welcome! To contribute:
+
+1. Fork the repository.
+2. Create a new branch.
+3. Make your changes.
+4. Submit a pull request.
+
+## License
+
+This project is licensed under the GPL-3.0 License. See the [LICENSE](https://github.com/Andres-Briones/NablaPoker/blob/main/LICENSE) file for more details.
+
+---
+
+If you encounter any issues during installation or have questions, feel free to open an issue or contact the maintainer.
