@@ -56,12 +56,26 @@ fi
 # 5. Create a run script that re-checks requirements before each launch
 ###############################################################################
 echo "Creating run script at: ${RUN_SCRIPT}"
-cat <<EOF > "$RUN_SCRIPT"
+cat <<EOF > "${RUN_SCRIPT}"
 #!/usr/bin/env bash
-source "$VENV_DIR/bin/activate"
-exec python "${APP_DIR}/run.py"
+# 
+# Activates the virtual env and runs the app.
+# It also check the requirements in case new requirements were added.
+
+cd "${APP_DIR}"
+source "${VENV_DIR}/bin/activate"
+
+# Reinstall dependencies if requirements.txt is updated
+if [ -f requirements.txt ]; then
+    echo "Upgrading/installing requirements before launch..."
+    pip install --upgrade -r requirements.txt
+fi
+
+# Finally, run the app
+exec python run.py
 EOF
-chmod +x "$RUN_SCRIPT"
+
+chmod +x "${RUN_SCRIPT}"
 
 ###############################################################################
 # 6. Ask user about systemd service setup
