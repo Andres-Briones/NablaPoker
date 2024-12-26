@@ -2,14 +2,16 @@ from flask import Blueprint, request, jsonify, session, render_template, current
 from app.utils.models import *
 from app.utils.plots import *
 from collections import defaultdict
+from app.utils.decorators import login_required
+
 import json
 
 statistics_bp = Blueprint('statistics', __name__)
 
 @statistics_bp.route('/')
+@login_required
 def statistics():
     db_path = session.get("db_path", None)
-    if db_path is None : return redirect('/need_to_login')
 
     # Update and retrieve overall statistics
     update_players_statistics(session["db_path"])

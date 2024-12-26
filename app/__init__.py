@@ -25,11 +25,12 @@ def create_app():
     from .auth import auth_bp
     from .replayer import replayer_bp
     from .statistics import statistics_bp
+    from .rooms import rooms_bp
 
-    app.register_blueprint(main_bp, url_prefix='/')
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(replayer_bp, url_prefix='/replayer')
     app.register_blueprint(statistics_bp, url_prefix='/statistics')
+    app.register_blueprint(rooms_bp, url_prefix='/')
 
     # Startup function
     with app.app_context():

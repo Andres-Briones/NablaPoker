@@ -14,7 +14,7 @@
     <body>
         <header>
             <div id="pages" class="menu">
-                <a href="{{ url_for('main.index') }}">
+                <a href="/">
                     Home
                 </a>
                 <a href="{{ url_for('replayer.replayer') }}">
@@ -27,23 +27,31 @@
             <div id="log_status" class="menu" style="margin-left:auto;">
                 {% if session.user_id %}
                 <p> Logged in as <b>{{ session.username }}</b></p>
-                <a href="{{ url_for('auth.logout') }}">Logout</a>
+                <a hx-get="{{ url_for('auth.logout') }}">Logout</a>
                 {% else %}
-                <a href="{{ url_for('auth.login') }}">Login</a>
-                <a href="{{ url_for('auth.register') }}">Register</a>
+                <a hx-get="{{ url_for('auth.login') }}" hx-target="#popup">Login</a>
+                <a hx-get="{{ url_for('auth.register') }}" hx-target="#popup">Register</a>
                 {% endif %}
             </div>
         </header>
         <main  class="main-content">
+
+
             {% block content %}{% endblock %}
+
+            <div id=popup>
+                {% if login_popup %}
+                {% include 'login.html' %}
+                {% endif %}
+            </div>
+
+            {% include 'flash_messages.html' %}
+
         </main>
         <footer>
             <p>&copy; 2024 Nabla Poker</p>
         </footer>
 
-        {% if error %}
-        <script type="text/javascript" > alert("{{ error }}"); </script>
-        {% endif %}
         <script src="{{ url_for('static', filename='js/table_navigation.js') }}"></script>
     </body>
 </html>

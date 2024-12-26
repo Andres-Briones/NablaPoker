@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, session, render_template, current
 from app.utils.models import get_db_connection, load_hands_from_db
 from app.utils.hand_parser import get_data_for_replayer
 from werkzeug.utils import secure_filename
+from app.utils.decorators import login_required
 import time
 import json
 import os
@@ -52,9 +53,9 @@ def get_hands_list(db_path, page = 1, q = None, return_count = True):
     return results
 
 @replayer_bp.route('/')
+@login_required
 def replayer():
     db_path = session.get("db_path", None)
-    if db_path is None : return redirect('/need_to_login')
     session["page"] = 1
     session["filter"] = None
     hands_list, count = get_hands_list(db_path, session["page"])

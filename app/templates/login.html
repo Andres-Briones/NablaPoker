@@ -1,23 +1,39 @@
-{% extends "base.html" %}
+<div id="popup" class="popup">
+    <div class="box" style="position:relative;">
+        <h3>Login</h3>
 
-{% block subtitle %}Login{% endblock %}
+        <form  class="loginForm" hx-post="{{ url_for('auth.login') }}" hx-target="#popup">
+            <div>
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div>
+                <button type="submit">Login</button>
+            </div>
+        </form>
+        <p>Don't have an account? <a hx-get="{{ url_for('auth.register') }}" hx-target="#popup">Register here</a>.</p>
 
-{% block content %}
-<div class="box">
-    <h3>Login</h3>
-    <form  class="loginForm" method="POST">
-        <div>
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-        </div>
-        <div>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <div>
-            <button type="submit">Login</button>
-        </div>
-    </form>
-    <p>Don't have an account? <a  href="{{ url_for('auth.register') }}">Register here</a>.</p>
+        {% if error %}
+        <p id="error_message"> {{ error }} </p>
+        {% endif %}
+
+        <a id="exit-button" hx-get="/exit_popup" hx-target="#popup" hx-trigger="click, keyup[key=='Escape'] from:body">x</a>
+
+    </div>
 </div>
-{% endblock %}
+
+<style>
+#error_message{
+    position:absolute;
+    width:100%;
+    text-align:center;
+    left:50%;
+    top:27%;
+    color: red;
+    transform: translate(-50%,-50%);
+}
+</style>

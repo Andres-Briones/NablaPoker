@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block subtitle %}Rooms{% endblock %}
+
+{% block content %}
+<div class="box">
+    <h3>Rooms</h3>
+
+    <button hx-get="{{ url_for('rooms.create') }}" hx-target="#popup">
+        Create Room
+    </button>
+
+    <div hx-ext="ws" ws-connect="/room_ws" style="margin: 10px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Stakes</th>
+                    <th>Players</th>
+                </tr>
+            </thead>
+            <tbody id="rooms_list">
+                {% include '_rooms.html' %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function openNewWindow(url, width, height) {
+    window.open(url, '_blank', `width=${width},height=${height},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`);
+}
+</script>
+
+{% endblock %}
+
+
+
+
