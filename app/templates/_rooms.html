@@ -1,12 +1,24 @@
 <!-- A simple partial that displays all rooms in a <ul> -->
-<tbody id="rooms_list" hx-swap-obb="afterbegin">
-    {% for room in rooms %}
-    <tr class="clickable-row"
-        onclick="openNewWindow('/room-window', 800, 600)">
+<div id="rooms_list" hx-swap-obb="innerHTML">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Stakes</th>
+        <th>Players</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for room in rooms %}
+      <tr class="clickable-row"
+        onclick="openNewWindow('/room/{{ room.id }}', 800, 600)">
         <td>{{ room.id }}</td>
         <td>{{ room.name }}</td>
-        <td>{{ room.stakes }}</td>
-        <td>{{ room.players}} / {room.size}</td>
-    </tr>
-    {% endfor %}
-</tbody>
+        <td>{{ room.small_blind }} / {{ room.big_blind}}</td>
+        <td> ? / {{ room.max_players }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

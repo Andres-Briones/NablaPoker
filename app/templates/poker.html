@@ -1,0 +1,15 @@
+{% extends "poker_base.html" %}
+
+{% block subtitle %}{{ general_data.name }}{% endblock %}
+
+{% block content %}
+<div class="box">
+  <h3>{{ general_data.name }}</h3>
+    {% include 'poker_table.html' %}
+    <button hx-get="/delete/{{general_data.id}}"> Delete room</button>
+
+</div>
+
+{% endblock %}
+
+

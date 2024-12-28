@@ -1,0 +1,39 @@
+<div id="popup" class="popup">
+  <div class="box" style="position:relative;">
+    <h3>Room Creation</h3>
+
+    <form class="loginForm" hx-post="{{ url_for('rooms.create') }}" hx-target="#popup">
+      <div>
+        <label for="name">Room Name:</label>
+        <input type="text" id="name" name="name" required />
+      </div>
+
+      <div>
+        <label for="max_players">Max Players:</label>
+        <select id="max_players" name="max_players" required>
+          <option value="2">2</option>
+          <option value="6">6</option>
+          <option value="9">9</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="game_type">Game Type:</label>
+        <select id="stakes" name="stakes" required>
+          <option value="0.01/0.02">0.01/0.02</option>
+          <option value="0.02/0.04">0.02/0.04</option>
+          <option value="0.05/0.10">0.05/0.10</option>
+          <option value="0.10/0.20">0.10/0.20</option>
+          <option value="0.25/0.50">0.25/0.50</option>
+          <option value="0.50/1.00">0.50/1.00</option>
+          <!-- Add more options as needed -->
+        </select>
+      </div>
+
+      <button type="submit">Create Room</button>
+
+      <a id="exit-button" hx-get="/exit_popup" hx-target="#popup" hx-trigger="click, keyup[key=='Escape'] from:body">x</a>
+
+    </form>
+  </div>
+</div>

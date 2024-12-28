@@ -11,19 +11,7 @@
     </button>
 
     <div hx-ext="ws" ws-connect="/room_ws" style="margin: 10px;">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Stakes</th>
-                    <th>Players</th>
-                </tr>
-            </thead>
-            <tbody id="rooms_list">
-                {% include '_rooms.html' %}
-            </tbody>
-        </table>
+            {% include '_rooms.html' %}
     </div>
 </div>
 

@@ -31,6 +31,8 @@ def create_app():
     app.register_blueprint(replayer_bp, url_prefix='/replayer')
     app.register_blueprint(statistics_bp, url_prefix='/statistics')
     app.register_blueprint(rooms_bp, url_prefix='/')
+    app.register_blueprint(main_bp, url_prefix='/main')
+
 
     # Startup function
     with app.app_context():
@@ -39,7 +41,7 @@ def create_app():
         def utility_processor():
             return dict(cos=cos, sin=sin, acos=acos)
 
+        # Check if the database exists. If not, create it using schema.sql
         ensure_db()
-
 
     return app

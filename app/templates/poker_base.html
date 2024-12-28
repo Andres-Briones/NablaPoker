@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            Nabla Poker
+            - {% block subtitle %}{% endblock %}
+        </title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+        <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+        <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    </head>
+    <body>
+        <header>
+        </header>
+        <main  class="main-content">
+
+            {% block content %}{% endblock %}
+
+            <div id=popup>
+                {% if login_popup %}
+                {% include 'login.html' %}
+                {% endif %}
+            </div>
+
+            {% include 'flash_messages.html' %}
+
+        </main>
+        <footer>
+            <p>&copy; 2024 Nabla Poker</p>
+        </footer>
+
+        <script src="{{ url_for('static', filename='js/table_navigation.js') }}"></script>
+    </body>
+</html>

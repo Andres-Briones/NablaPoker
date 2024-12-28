@@ -11,7 +11,8 @@ def get_db():
             current_app.config['DATABASE'],
             detect_types=sqlite3.PARSE_DECLTYPES
         )
-        g.db.row_factory = sqlite3.Row  # Return rows like dictionaries
+        #g.db.row_factory = sqlite3.Row  # Return rows like dictionaries
+        g.db.row_factory = lambda cursor, row: {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
     return g.db
 
 def close_db(e=None):
@@ -56,4 +57,5 @@ def execute_db(query, args=()):
     db.commit()
     last_id = cur.lastrowid
     cur.close()
+    close_db()
     return last_id
