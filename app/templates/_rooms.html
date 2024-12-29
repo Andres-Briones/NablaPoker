@@ -12,11 +12,11 @@
     <tbody>
       {% for room in rooms %}
       <tr class="clickable-row"
-        onclick="openNewWindow('/room/{{ room.id }}', 800, 600)">
+        onclick="openNewWindow('/room/{{ room.id }}', 1000, 1000)">
         <td>{{ room.id }}</td>
         <td>{{ room.name }}</td>
         <td>{{ room.small_blind }} / {{ room.big_blind}}</td>
-        <td> ? / {{ room.max_players }}</td>
+        <td>{{ room.players}} / {{ room.max_players }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -1,0 +1,49 @@
+<div id="poker-table" hx-swap-oob="innerHTML">
+  <h3>{{general_data.table_name}} table</h3>
+  <div id="stakes"> Blinds: {{general_data.small_blind_amount}} / {{general_data.big_blind_amount}}</div>
+  <div id="street">Street : {{gamestate.street}}</div>
+  <div class="game-container">
+    {% for player in gamestate.players %}
+    <div class="player"
+      style="left: calc(50% + ( 50% * {{cos(-player.angle)}} ));
+      top: calc(50% - ( 50% * {{sin(-player.angle)}} ));">
+      <div class="player-box"></div>
+      <div class="player-name">{{player.name}}</div>
+      <div class="player-stack">{{player.chips|round(2)}} BB</div>
+      <div class="player-cards">
+        {% for card in player.cards %}
+        <img class="cards" src ="../static/images/cards/{{card}}.png" alt="Card">
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if player.dealer %}
+    <div class="dealer-button"
+      style="left: calc(50% + ( 32% * {{cos(-player.angle+0.2)}} ));
+      top: calc(45% - ( 32% * {{sin(-player.angle+0.2)}} ));">
+      D
+    </div>
+    {% endif %}
+
+    {% if player.bet > 0%}
+    <div class="playerBet"
+      style="left: calc(50% + ( 32% * {{cos(-player.angle)}} ));
+      top: calc(45% - ( 32% * {{sin(-player.angle)}} ));">
+      {{player.bet|round(2)}}
+    </div>
+    {% endif %}
+
+    {% endfor %}
+    <!-- Community Cards -->
+    <div class="community-cards">
+      {% for card in gamestate.board_cards %}
+      <img src="../static/images/cards/{{card}}.png" class="card" alt="Card" />
+      {% endfor %}
+    </div>
+
+    <!-- Pot -->
+    <div class="pot">
+      Pot: {{gamestate.pot|round(2)}} BB
+    </div>
+  </div>
+</div>
