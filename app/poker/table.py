@@ -220,6 +220,8 @@ class Table:
 
     def showdown(self) -> None:
         self.current_hand = None
+        for player in self.active_players:
+            player.mucks = False
         return
 
     def action(self, action_type:str, amount: Optional[Decimal] = Decimal('0.00')) -> None:
@@ -405,7 +407,7 @@ class Table:
             player_info["angle"] = np.pi * (2*(seat_index - this_player_seat_index)/len(self.players) + 1/2) # Angle in radians for the position of the player on the table
             # Add cards
             if player.cards:
-                if player_id == player.id:
+                if player_id == player.id or player.mucks == False:
                     player_info["cards"] = [str(card) for card in player.cards]
                 else : 
                     player_info["cards"] = ['back', 'back']

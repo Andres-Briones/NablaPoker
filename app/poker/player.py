@@ -39,6 +39,7 @@ class Player:
         self.cards = []
         self.bet_amount = Decimal('0.00')
         self.win_amount = None 
+        self.mucks = True
         self.cashout_amount = None 
         self.cashout_fee = None 
         self.bonus_amount = None 
