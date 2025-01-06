@@ -6,9 +6,11 @@
 <div hx-ext="ws" ws-connect="/table_ws/{{ general_data.id }}"  class="box">
   <h3>{{ general_data.name }}</h3>
     {% include 'poker_table_obb.html' %}
+
     <div>
-      <button hx-get="/delete/{{general_data.id}}"> Delete room</button>
-      <button hx-get="/quit/{{general_data.id}}"> Leave room</button>
+      <button hx-get="/delete/{{general_data.id}}" hx-target="#popup"> Delete room</button>
+      <button hx-get="/quit/{{general_data.id}}" hx-target="#popup">  Leave room</button>
+      <button hx-get="/start/{{general_data.id}}" hx-target="#popup"> Start game</button>
     </div>
 
 </div>
@@ -33,6 +35,19 @@ margin-left: 50px;
 margin-right: 50px;
 box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.5);
 z-index: 0;  
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 40px;
+  gap: 10px;
+}
+
+.action-buttons button {
+  gap: 0px;
+  margin: 0px;
 }
 
 /* Player styling */

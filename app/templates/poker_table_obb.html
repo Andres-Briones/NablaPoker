@@ -9,7 +9,7 @@
       top: calc(50% - ( 50% * {{sin(-player.angle)}} ));">
       <div class="player-box"></div>
       <div class="player-name">{{player.name}}</div>
-      <div class="player-stack">{{player.chips|round(2)}} BB</div>
+      <div class="player-stack">{{player.chips|round(1)}} BB</div>
       <div class="player-cards">
         {% for card in player.cards %}
         <img class="cards" src ="../static/images/cards/{{card}}.png" alt="Card">
@@ -29,7 +29,7 @@
     <div class="playerBet"
       style="left: calc(50% + ( 32% * {{cos(-player.angle)}} ));
       top: calc(45% - ( 32% * {{sin(-player.angle)}} ));">
-      {{player.bet|round(2)}}
+      {{player.bet|round(1)}}
     </div>
     {% endif %}
 
@@ -40,10 +40,34 @@
       <img src="../static/images/cards/{{card}}.png" class="card" alt="Card" />
       {% endfor %}
     </div>
-
     <!-- Pot -->
     <div class="pot">
-      Pot: {{gamestate.pot|round(2)}} BB
+      Pot: {{gamestate.pot|round(1)}} BB
     </div>
   </div>
+
+    <!-- Action Buttons -->
+
+    <div class="action-buttons">
+      {% if gamestate.player_turn != None %}
+        {% if gamestate.player_turn %}
+          {% if gamestate.can_check %}
+          <button hx-post="/action/{{ general_data.id }}/Check">Check</button>
+          {% else %} 
+          <button hx-post="/action/{{ general_data.id }}/Fold">Fold</button>
+          <button hx-post="/action/{{ general_data.id }}/Call">Call</button>
+          {% endif %}
+          {% if gamestate.can_bet %}
+          <button hx-post="/action/{{ general_data.id }}/Bet" hx-prompt="Enter amount:">Bet</button>
+          {% else %}
+          <button hx-post="/action/{{ general_data.id }}/Raise" hx-prompt="Enter amount:">Raise</button>
+          {% endif %}
+        {% else %}
+          <p>Wait for your turn</p>
+          <p>It's the turn of {{ gamestate.current_turn_name}}</p>
+        {% endif %}
+      {% endif %}
+    </div>
+
 </div>
+

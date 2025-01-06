@@ -151,7 +151,6 @@ class Hand:
     def __init__(self):
         self.table_name = None
         self.table_size = None
-        self.hands: List[Hand] = []
         self.tournament = False # Not supported yet
         self.game_type ="Holdem" # Only game_type supported for now
         self.bet_limit: {"bet_type": "NL", "bet_cap": 0} # Only supported limits for now

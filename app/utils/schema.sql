@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS rooms;
 DROP TABLE IF EXISTS messages;
 
 CREATE TABLE users (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
+id INTEGER PRIMARY KEY AUTOINCREMENT,  -- For security reasons, we would need another more complex random id to identify the player in the cookiers
 username TEXT UNIQUE NOT NULL,
 password TEXT NOT NULL
 );

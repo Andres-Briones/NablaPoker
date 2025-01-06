@@ -20,7 +20,7 @@ def create_room(name, max_players, small_blind, big_blind):
 
     return id
 
-def get_all_rooms(rooms_dict):
+def get_all_rooms(tables_dict):
     """
     Returns a list of dicts, each with { 'id': ..., 'name': ... }
     from the 'rooms' table.
@@ -30,11 +30,11 @@ def get_all_rooms(rooms_dict):
         return []
 
     for room in rooms:
-        room_values = rooms_dict.get(room["id"], None)
-        if room_values is None:
+        table = tables_dict.get(room["id"], None)
+        if table is None:
             room["players"] = 0 # Room is empty
         else : 
-            room["players"] = len(room_values["players"]) # Get number of players in the room
+            room["players"] = len(table.players) # Get number of players in the room
 
     return rooms
 
