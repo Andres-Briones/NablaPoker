@@ -4,7 +4,7 @@ from io import BytesIO
 from matplotlib.figure import Figure
 import numpy as np
 import seaborn as sns
-from app.utils.cards_utils import cardsToClass
+from app.utils.poker_utils import cardsToClass
 
 
 def generate_cummulative_profit_plot(player_name, db_path, window_size = 10):

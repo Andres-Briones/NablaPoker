@@ -44,26 +44,16 @@ def get_room(room_id):
     return room
 
 #Delete room 
-def delete_room_by_id(room_id):
+def delete_room_by_id(tables_dict, room_id):
+    table = tables_dict[room_id]
+    if len(table.players) != 1:
+        raise Exception("You can't delete a room with other players in it")
     try:
         query = "DELETE FROM rooms WHERE id = ?"
         execute_db(query, (room_id,))
     except Exception as e:
-        print("Error deleting room: ", e)
-
+        raise Exception("Error deleting room: ", e)
+    # remove the table from tables_dict
+    tables_dict.pop(room_id)
     return
 
-# Get next available seat from the available_seats list and updates the available_seats list
-def get_next_seat(room):
-    available_seats = room["available_seats"]
-    if available_seats: # If the list is not empty
-        seat = available_seats.pop(0)
-        return seat
-    return None # If the list is empty
-
-# Get list of used seats in the room
-def get_used_seats(room):
-    used_seats = []
-    for player in room["players"].values():
-        used_seats.append(player["seat"])
-    return used_seats

@@ -12,7 +12,7 @@
     <tbody>
       {% for room in rooms %}
       <tr class="clickable-row"
-        onclick="openNewWindow('/room/{{ room.id }}', 1000, 1000)">
+        hx-get='/load_room/{{ room.id }}', hx-target="#popup">
         <td>{{ room.id }}</td>
         <td>{{ room.name }}</td>
         <td>{{ room.small_blind }} / {{ room.big_blind}}</td>

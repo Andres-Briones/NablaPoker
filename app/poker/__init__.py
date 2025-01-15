@@ -6,5 +6,3 @@ from .round import Round
 from .pot import Pot
 from .hand import Hand
 from .session import Session
-from .table import Table
-from .circularlinkedlist import CircularLinkedList

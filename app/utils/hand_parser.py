@@ -1,7 +1,7 @@
 from collections import defaultdict
 import numpy as np
 from datetime import datetime
-from app.utils.cards_utils import cardsToClass, getCardSymbol, cardsListToString
+from app.utils.poker_utils import cardsToClass, getCardSymbol, cardsListToString
 
 
 def parse_hand_at_upload(ohh_obj):

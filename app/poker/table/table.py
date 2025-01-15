@@ -1,14 +1,9 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
+from app.utils.poker_utils import find_winners
 from datetime import datetime
 from decimal import Decimal
-from .deck import Deck
-from .card import Card
-from .player import Player
-from .action import Action
-from .pot import Pot
-from .hand import Hand
-from .session import Session
-from .round import Round, possible_streets
+from app.poker import  Deck, Card, Player, Action, Pot, Hand, Session, Round
+from app.poker.round import  possible_streets
 from .circularlinkedlist import CircularLinkedList
 import numpy as np
 import random
@@ -29,6 +24,9 @@ class Table:
         self.current_turn: int = None
         self.current_round: Round = None
         self.current_hand: Hand = None
+        self.log = ""
+        # TODO : Set description for each action made into the log and must important the winnings descriptions
+        self.phase = None # Can be None, "Game", "Showdown" or "Accept"
         self.streets = ["Preflop", "Flop", "Turn", "River", "Showdown"]
         self.deck: Deck = None
         self.verbose = True
@@ -36,6 +34,7 @@ class Table:
         self.dealer = None
         self.bb_player = None
         self.agressor: int = None #Id of the agressor
+
 
     def new_player(self, id: int, name: str, starting_stack: Decimal = Decimal(100)) -> Player:
         try:
@@ -49,14 +48,19 @@ class Table:
         self.add_player(player)
         return player
 
+
     def add_player(self, player: Player) -> None:
         self.players[player.id] = player
+
 
     def remove_player(self, id: int) -> None:
         player = self.players.pop(id, None)
         if player:
             self.available_seats.append(player.seat)
             self.available_seats.sort()
+        if len(self.active_players):
+            self.end_game()
+
 
     def start_round(self, street: str) -> None:
         if street not in possible_streets:
@@ -76,8 +80,10 @@ class Table:
             round_.set_community_cards([str(card) for card in new_cards])
             self.current_hand.add_round(round_)
 
+
     def get_active_seats(self) -> List: 
         return self.active_players.get_seats()
+
 
     def get_player_by_seat(self, seat): # Not only fo active players
         player = next((player for id, player in self.players.items() if player.seat == seat), None)
@@ -85,29 +91,36 @@ class Table:
             raise ValueError("No player was found at that seat.")
         return player
 
+
     def get_next_player(self, player, skip: Optional[int] = 0) -> Player:
         return self.active_players.get_next(player.seat, skip)
+
     
     def get_next_seat(self, seat, return_player = False) : 
         if return_player :
             return self.active_players.get_next(player)
         return self.active_players.get_next(player).seat
 
+
     def set_next_turn(self) -> None:
         current_player = self.players[self.current_turn]
         next_player = self.get_next_player(current_player)
         return next_player.id
 
+
     def get_current_player(self) -> Player:
         return self.players.get(self.current_turn, None)
 
+
     def is_player_turn(self, id: int) -> bool:
         return self.current_turn == id
+
 
     def set_bet(self, bet: Decimal) -> None:
         player = self.get_current_player() 
         player.bet(bet)
         self.pot += bet
+
 
     def deal_community_cards(self, number: int) -> List[Card]:
         cards = self.deck.draw(number)
@@ -115,9 +128,11 @@ class Table:
         self.current_round.set_community_cards([str(card) for card in cards])
         return cards
 
+
     def deal_cards(self) -> None:
         for _ in range(len(self.active_players)):
             self.action("Dealt Cards")
+
 
     def deal_hole_cards(self) -> List[Card]:
         ''' Deal two cards the the current player '''
@@ -126,9 +141,28 @@ class Table:
         player.cards = cards
         return cards
 
+
+    def get_used_seats(self) -> List[int]:
+        used_seats = []
+        for player in self.players.values() :
+            used_seats.append(player.seat)
+        return used_seats
+
+
+    def get_current_street(self) -> str:
+        street = None
+        if self.current_round is not None:
+            street = self.current_round.street
+        return street
+
+
     def start_new_game(self) -> None:
+
         if self.current_hand is not None:
             raise Exception("Finish the hand before starting a new one")
+
+        self.phase = "Game"
+        self.log = ""
         # Reset the game state for all players (Not only the active ones)
         # Add active players to the players list
         self.active_players = CircularLinkedList()
@@ -149,10 +183,8 @@ class Table:
         self.board_cards = []
         self.pot = Decimal('0.00')
         self.current_bet = Decimal('0.00')
-        self.phase = 'Preflop'
         self.streets = ["Preflop", "Flop", "Turn", "River", "Showdown"]
         self.current_round = Round(round_id = 0, street = self.streets.pop(0))
-
 
         # If there isn't a dealer, set the dearler randomly
         if self.dealer_seat is None:
@@ -187,6 +219,7 @@ class Table:
             small_blind_amount=self.small_blind,
             big_blind_amount=self.big_blind)
 
+
     def next_round(self) -> None:
         # Add previous round to the current hand
         self.current_hand.add_round(self.current_round)
@@ -201,7 +234,6 @@ class Table:
         self.current_round = Round(round_id = len(self.current_hand.rounds), street = street)
 
         if street == "Showdown":
-            self.current_turn = None
             self.showdown()
         else: 
             self.agressor = self.get_next_player(self.dealer).id
@@ -217,12 +249,9 @@ class Table:
             print(f"---------- {street} ----------")
             print(f"Board : {self.board_cards}")
             print(f"Pot: {self.pot}")
+            current_player = None if self.current_turn is None else self.players[self.current_turn].name
+            print(f"Current turn: {current_player}")
 
-    def showdown(self) -> None:
-        self.current_hand = None
-        for player in self.active_players:
-            player.mucks = False
-        return
 
     def action(self, action_type:str, amount: Optional[Decimal] = Decimal('0.00')) -> None:
         player = self.get_current_player()
@@ -232,8 +261,7 @@ class Table:
             action_id = len(self.current_round.actions),
             player_id = player.id, 
             action_type = action_type,
-            is_all_in = player.is_all_in,
-        ) 
+            is_all_in = player.is_all_in) 
 
         match action_type:
             case "Dealt Cards" : #Player is dealt cards.
@@ -306,7 +334,6 @@ class Table:
 
             print("Current bet :", self.current_bet)
             print("Agressor :", agressor_player.name if agressor_player else None)
-            print("BB_player:", self.bb_player.name if self.bb_player else None)
 
         next_player = self.get_next_player(player)
         if action_type in ["Dealt Cards", "Post SB", "Post BB"]: 
@@ -329,41 +356,58 @@ class Table:
                     self.current_turn = next_player.id
 
 
+    def showdown(self) -> None:
+        self.phase = None
+        self.log = ""
+        for player in self.active_players:
+            player.mucks = False
+        self.end_game()
+
     def end_game(self) -> None:
         # Reset bets
+        self.log = ""
         self.current_bet = Decimal('0.00')
         for player in self.active_players:
             player.bet_amount = Decimal('0.00')
-        # Set current turn to None
         self.current_turn = None
+        self.current_round = None
+        self.phase = None
         self.set_winnings()
-        if self.verbose :
-            session = Session(session_id='1')
-            print(self.current_hand.to_json(session))
-        # Reset the hand
         self.current_hand = None
+        self.active_players = CircularLinkedList()
+
+
+    def determine_winners(self) -> List[Tuple[Player, str]]:
+        active_players_cards = {
+            player: player.cards 
+            for player in self.active_players
+        }
+        return find_winners(active_players_cards, self.board_cards)
+
 
     def set_winnings(self) -> None:
         pot = Pot(pot_number = 1, amount = self.pot)
         portion = self.pot/len(self.active_players) # Lossing players are removed from active players
-        for player in self.active_players:
-            player.stack += portion
-            self.pot -= portion
-            player.add_winnings(win_amount = portion)
-            pot.add_player(player)
-        self.current_hand.add_pot(pot)
+        self.log = ""
+        if len(self.active_players) == 1:
+            for player in self.active_players:
+                player.stack += portion
+                self.pot -= portion
+                player.add_winnings(win_amount = portion)
+                pot.add_player(player)
+                self.log +=f"{player.name} won {portion/self.big_blind} BB"
+        else :
+            winners_hands = self.determine_winners()
+            for player, hand_name in winners_hands:
+                player.stack += portion
+                self.pot -= portion
+                player.add_winnings(win_amount = portion)
+                pot.add_player(player)
+                self.log +=f"{player.name} won {portion/self.big_blind} BB with {hand_name}\n"
+            self.current_hand.add_pot(pot)
 
-    def get_used_seats(self) -> List[int]:
-        used_seats = []
-        for player in self.players.values() :
-            used_seats.append(player.seat)
-        return used_seats
 
-    def get_current_street(self) -> str:
-        street = None
-        if self.current_round is not None:
-            street = self.current_round.street
-        return street
+
 
     def get_display_data(self, player_id):
         this_player = self.players[player_id]
@@ -386,6 +430,8 @@ class Table:
             "current_turn_name": current_player.name if current_player else None,
             "can_bet": self.current_bet == Decimal('0.00'),
             "can_check": self.current_bet == Decimal('0.00') or self.agressor == current_player.id,
+            "phase": self.phase,
+            "log": self.log,
         }
 
         used_seats = self.get_used_seats()
@@ -419,9 +465,4 @@ class Table:
         gamestate["players"] = players
 
         return general_data, gamestate
-
-
-
-        
-
 

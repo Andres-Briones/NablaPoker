@@ -1,7 +1,7 @@
 <div id="poker-table" hx-swap-oob="innerHTML">
   <h3>{{general_data.table_name}} table</h3>
   <div id="stakes"> Blinds: {{general_data.small_blind_amount}} / {{general_data.big_blind_amount}}</div>
-  <div id="street">Street : {{gamestate.street}}</div>
+  <div id="street">Phase: {{gamestate.phase}}</div>
   <div class="game-container">
     {% for player in gamestate.players %}
     <div class="player"
@@ -46,26 +46,26 @@
     </div>
   </div>
 
+  <div class="log">{{gamestate.log}}</div>
+
     <!-- Action Buttons -->
 
     <div class="action-buttons">
-      {% if gamestate.player_turn != None %}
-        {% if gamestate.player_turn %}
-          {% if gamestate.can_check %}
-          <button hx-post="/action/{{ general_data.id }}/Check">Check</button>
-          {% else %} 
-          <button hx-post="/action/{{ general_data.id }}/Fold">Fold</button>
-          <button hx-post="/action/{{ general_data.id }}/Call">Call</button>
-          {% endif %}
-          {% if gamestate.can_bet %}
-          <button hx-post="/action/{{ general_data.id }}/Bet" hx-prompt="Enter amount:">Bet</button>
-          {% else %}
-          <button hx-post="/action/{{ general_data.id }}/Raise" hx-prompt="Enter amount:">Raise</button>
-          {% endif %}
-        {% else %}
-          <p>Wait for your turn</p>
-          <p>It's the turn of {{ gamestate.current_turn_name}}</p>
+      {% if gamestate.player_turn %}
+        {% if gamestate.can_check %}
+          <button hx-target = "#popup" hx-post="/action/{{ general_data.id }}/Check">Check</button>
+        {% else %} 
+          <button hx-target = "#popup" hx-post="/action/{{ general_data.id }}/Fold">Fold</button>
+          <button hx-target = "#popup" hx-post="/action/{{ general_data.id }}/Call">Call</button>
         {% endif %}
+        {% if gamestate.can_bet %}
+          <button hx-target = "#popup" hx-post="/action/{{ general_data.id }}/Bet" hx-prompt="Enter amount:">Bet</button>
+        {% else %}
+          <button hx-target = "#popup" hx-post="/action/{{ general_data.id }}/Raise" hx-prompt="Enter amount:">Raise</button>
+        {% endif %}
+      {% elif gamestate.current_turn_name is not none %}
+        <p>Wait for your turn.</p>
+        <p>It's the turn of {{ gamestate.current_turn_name}}</p>
       {% endif %}
     </div>
 

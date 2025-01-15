@@ -3,10 +3,11 @@ from decimal import Decimal
 from app.ws import sock
 from .models import create_room, get_all_rooms, get_room, delete_room_by_id
 from app.utils.decorators import login_required, htmx_required
-from app.utils.wrappers import render_template_flash
+from app.utils.wrappers import render_template_flash, render_flash
+from app.utils.scripts import open_window_script
 import numpy as np
 import random
-from app.poker import Table
+from app.poker.table import Table
 import json
 
 from . import rooms_bp
@@ -90,6 +91,7 @@ def poker_room(room_id):
 
     return render_template("poker.html", general_data = general_data, gamestate = gamestate)
 
+
 @rooms_bp.route('/start/<int:room_id>', methods=["GET", "POST"])
 @login_required
 def start_game(room_id):
@@ -101,7 +103,7 @@ def start_game(room_id):
     try:
         table.start_new_game()
     except Exception as e:
-        flash(f"{e}")
+        flash(f"{e}", "error")
         return render_template("flash_messages.html")
     
     broadcast_table_update(room_id)
@@ -111,13 +113,14 @@ def start_game(room_id):
 @login_required
 def delete_room(room_id):
     try:
-        delete_room_by_id(room_id)
+        delete_room_by_id(tables_dict, room_id)
         broadcast_room_update()
     except Exception as e:
-        print(f"Error deleting room: {str(e)}")
-    finally:
-        # We need to return a signal to delete the current window
-        return "<script> window.close() </script>"
+        flash(f"{e}","error")
+        return render_flash()
+
+    # We need to return a signal to delete the current window
+    return "<script> window.close() </script>"
 
 # Quit room
 @rooms_bp.route('/quit/<int:room_id>', methods=["GET"])
@@ -125,16 +128,30 @@ def quit_room(room_id):
     player_id = session["user_id"]
     table = tables_dict.get(room_id, None)
     if table is None:
-        return "Room not found"
+        flash("Room not found", "error")
+        return render_flash()
     player = table.players.get(player_id, None)
     if player is None:
-        return "Player not found"
+        flash("Player not found", "error")
+        return render_flash()
+    active_players = table.active_players.to_list()
+    for player in active_players:
+        if player.id == player_id:
+            flash(f"Finish the current game before leaving","error")
+            return render_flash()
 
     table.remove_player(player_id)
-
     broadcast_room_update()
     broadcast_table_update(room_id)
     return "<script> window.close() </script>"
+
+
+# Route for opening a new window for the given room_id
+@rooms_bp.route('/load_room/<int:room_id>')                
+@login_required
+def load_room(room_id):
+    return open_window_script(f"/room/{room_id}", 1000, 1000)
+
 
 @rooms_bp.route('/action/<int:room_id>/<action>', methods=['POST'])
 @login_required
@@ -145,10 +162,15 @@ def player_action(room_id, action):
         try:
             table.action(action_type = action, amount=amount*table.big_blind)
         except Exception as e:
-            print(e)
-            return f'e', 404
+            print(f" {e}")
+            flash(f"{e}", "error")
+            return render_flash()
         broadcast_table_update(room_id)
+    else:
+        flash("You can't take action right now")
+        return render_flash()
     return '', 204
+
 
 @sock.route("/rooms_ws")
 def rooms_ws(ws):
@@ -228,4 +250,6 @@ def broadcast_table_update(room_id):
             except:
                 print("The connection should have been deleted from the dict")
                 tables_dict[room_id].players[session["user_id"]].socket = None
+
+
 
