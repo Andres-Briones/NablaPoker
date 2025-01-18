@@ -375,10 +375,7 @@ class Table:
         return
 
 
-    def end_game(self) -> None:
-        # Give back the uncalled amount
-        self.give_back_uncalled_amount()
-
+    def set_winnings(self) -> None:
         # Calculate total bets for each player (starting_stack - current_stack)
         total_bets = {
             player: player.starting_stack - player.stack 
@@ -396,9 +393,9 @@ class Table:
         # Set winnings
         pot = Pot(pot_number = 1, amount = self.pot)
         self.current_hand.add_pot(pot)
-        portion = self.pot/len(self.active_players) # Lossing players are removed from active players
         winners : List[Players] = []
         if len(self.active_players) == 1:
+            portion = self.pot
             for player in self.active_players : # The only one
                 self.logs.append(f"{player.name} won {portion/self.big_blind} BB")
                 winners.append(player)
@@ -409,6 +406,7 @@ class Table:
                 for player in self.active_players
             }
             winners_hands =  find_winners(active_players_cards, self.board_cards)
+            portion = self.pot / len(winners_hands)
             for player, hand_name in winners_hands:
                 self.logs.append(f"{player.name} won {portion/self.big_blind} BB with {hand_name}")
                 winners.append(player)
@@ -422,6 +420,14 @@ class Table:
             pot.add_player(player)
 
         self.current_hand.add_pot(pot)
+
+
+    def end_game(self) -> None:
+        # Give back the uncalled amount
+        self.give_back_uncalled_amount()
+
+        # Set winnings
+        self.set_winnings()
 
         # Reset bets
         self.current_bet = Decimal('0.00')
