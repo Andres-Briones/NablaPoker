@@ -170,3 +170,19 @@ class CircularLinkedList:
         for data in self:
             data_list.append(data)
         return data_list
+
+    def copy(self):
+        """Create a copy of the circular linked list."""
+        new_list = CircularLinkedList()
+        current = self.head
+
+        if not current:
+            return new_list
+
+        while True:
+            new_list.append(current.position, current.data)
+            current = current.next
+            if current == self.head:
+                break
+
+        return new_list

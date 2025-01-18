@@ -18,6 +18,7 @@ class Table:
         self.players: Dict[int, Player] = {}
         self.available_seats: List[int] = list(range(table_size)) # This list should always be ordered
         self.active_players = CircularLinkedList()
+        self.playing_players = None 
         self.board_cards: List[Card] = []
         self.pot: Decimal = Decimal('0.00')
         self.uncalled_amount: Decimal = Decimal('0.00')
@@ -43,6 +44,7 @@ class Table:
         player = Player(id = id,
                         name = name,
                         starting_stack = starting_stack,
+                        #starting_stack = Decimal(f"{round(random.random(),1)*2}"),
                         seat = seat)
         self.add_player(player)
         return player
@@ -57,8 +59,6 @@ class Table:
         if player:
             self.available_seats.append(player.seat)
             self.available_seats.sort()
-        if len(self.active_players):
-            self.end_game()
 
 
     def get_active_seats(self) -> List: 
@@ -73,8 +73,10 @@ class Table:
 
 
     def get_next_player(self, player, skip: Optional[int] = 0) -> Player:
-        return self.active_players.get_next(player.seat, skip)
+        return self.playing_players.get_next(player.seat, skip)
 
+    def get_next_active_player(self, player, skip: Optional[int] = 0) -> Player:
+        return self.active_players.get_next(player.seat, skip)
     
     def get_next_seat(self, seat, return_player = False) : 
         if return_player :
@@ -159,6 +161,11 @@ class Table:
         self.current_bet = Decimal('0.00')
         self.streets = ["Preflop", "Flop", "Turn", "River", "Showdown"]
         self.current_round = Round(round_id = 0, street = self.streets.pop(0))
+        self.playing_players = self.active_players.copy()
+
+        #Reset the starting_stack of the players to their current stack
+        for player in self.active_players:
+            player.starting_stack = player.stack
 
         # If there isn't a dealer, set the dearler randomly
         if self.dealer_seat is None:
@@ -210,9 +217,6 @@ class Table:
         # Add previous round to the current hand
         self.current_hand.add_round(self.current_round)
 
-        # Give back uncalled amount (can happend in all-in situations)
-        self.give_back_uncalled_amount()
-
         # Reset bets 
         self.current_bet = Decimal('0.00')
         for player in self.active_players:
@@ -242,18 +246,17 @@ class Table:
             print(f"Current turn: {current_player}")
 
         # Check if all players (or except one) are all-in, in that case go to next round and repeat until showdown
-        active_non_all_in_players = [p for p in self.active_players if not p.is_all_in]
-        if len(active_non_all_in_players) <= 1 and self.current_hand:
-            self.next_round()
+        if self.current_hand :
+            if len(self.playing_players) <= 1 :
+                self.next_round()
 
 
-    def check_if_all_in(self, amount:Decimal) -> bool :
+    def check_if_all_in(self, total_bet:Decimal) -> bool :
         player = self.get_current_player()
-        if amount >= player.stack:
-            new_amount = player.stack
-            player.is_all_in =  True
-            return True, new_amount
-        return False, amount
+        max_bet = player.stack + player.bet_amount
+        if total_bet >= max_bet:
+            return True, max_bet
+        return False, total_bet 
 
     def action(self, action_type:str, amount: Optional[Decimal] = Decimal('0.00')) -> None:
         player = self.get_current_player()
@@ -289,6 +292,7 @@ class Table:
                 self.uncalled_amount = amount
             case "Fold" : #The player folds their cards.
                 self.active_players.remove(player.seat)
+                self.playing_players.remove(player.seat)
                 if len(self.active_players) == 1:
                     self.end_game()
                     return
@@ -307,8 +311,9 @@ class Table:
             case "Raise" : #The player makes a raise.
                 if self.current_bet == Decimal('0.00'):
                     raise Exception("The player can't raise because the current bet is zero")
-                all_in, amount = self.check_if_all_in(amount)
                 total_raise = player.bet_amount + amount
+                all_in, total_raise = self.check_if_all_in(total_raise)
+                amount = total_raise - player.bet_amount
                 if total_raise < self.current_bet + self.small_blind :
                     raise Exception("The total raised amount should be greater or equal to the previous raise plus the small blind")
                 self.set_bet(amount)
@@ -320,38 +325,43 @@ class Table:
                     raise Exception("The player can't call because the current bet is zero")
                 if self.current_bet == player.bet_amount: # Can happen when the player is BB and everyone fold or call preflop
                     raise Exception("Calling here is useless because the player bet is equal the the maximum bet")
-                amount = self.current_bet - player.bet_amount
-                all_in, amount = self.check_if_all_in(amount)
+                all_in, total_bet = self.check_if_all_in(self.current_bet)
+                amount = total_bet - player.bet_amount # amount added for call
+                self.set_bet(amount)
                 if all_in :
-                    self.uncalled_amount -= amount 
+                    if total_bet >= self.current_bet - self.uncalled_amount:
+                        self.uncalled_amount = self.current_bet - total_bet
                 else :
                     self.uncalled_amount = Decimal("0.00")
-                self.set_bet(amount)
+
+        if all_in :
+            new_action.is_all_in = True
+            player.is_all_in =  True
+            self.playing_players.remove(player.seat)
 
         new_action.amount = amount
-        if all_in : new_action.is_all_in = True
         self.current_round.add_action(new_action)
 
         agressor_player = self.players.get(self.agressor,None)
+
+        next_player = self.get_next_player(player)
+        next_active_player= self.get_next_active_player(player)
+
         if self.verbose:
             string = f"\n{player.name} : {action_type}"
             if amount > 0: string += f" {amount}"
             if action_type == "Dealt Cards":  string += f" {player.cards}"
             print(string)
-
             print("Current bet :", self.current_bet)
             print("Agressor :", agressor_player.name if agressor_player else None)
             print("Uncalled amount :", self.uncalled_amount)
 
-        next_player = self.get_next_player(player)
-        while next_player.is_all_in:
-            next_player = self.get_next_player(next_player)
-            if next_player.id == player.id:
-                self.next_round()
-                return
-
         if action_type in ["Dealt Cards", "Post SB", "Post BB"]: 
             self.current_turn = next_player.id
+            return
+        
+        if next_active_player.is_all_in and next_active_player.id == self.agressor:
+            self.next_round()
             return
 
         if self.current_round.street == "Preflop":
@@ -374,7 +384,6 @@ class Table:
 
         return
 
-
     def set_winnings(self) -> None:
         # Calculate total bets for each player (starting_stack - current_stack)
         total_bets = {
@@ -389,38 +398,55 @@ class Table:
             for player, amount in sorted_bets.items():
                 print(f"{player.name}: {amount}")
 
-
-        # Set winnings
-        pot = Pot(pot_number = 1, amount = self.pot)
-        self.current_hand.add_pot(pot)
-        winners : List[Players] = []
-        if len(self.active_players) == 1:
-            portion = self.pot
-            for player in self.active_players : # The only one
-                self.logs.append(f"{player.name} won {portion/self.big_blind} BB")
-                winners.append(player)
-        else :
-            # Determine the winners 
-            active_players_cards = {
-                player: player.cards 
-                for player in self.active_players
-            }
-            winners_hands =  find_winners(active_players_cards, self.board_cards)
-            portion = self.pot / len(winners_hands)
-            for player, hand_name in winners_hands:
-                self.logs.append(f"{player.name} won {portion/self.big_blind} BB with {hand_name}")
-                winners.append(player)
-
-        for player in winners:
-            # For winning players show their hands
-            player.mucks = False
-            player.stack += portion
-            self.pot -= portion
-            player.add_winnings(win_amount = portion)
-            pot.add_player(player)
-
-        self.current_hand.add_pot(pot)
-
+        # Create pots based on bet levels
+        current_pot_number = 1
+        previous_bet_level = Decimal('0.00')
+        
+        for player, bet_amount in sorted_bets.items():
+            if bet_amount > previous_bet_level:
+                # Create new pot for this bet level
+                pot_amount = Decimal('0.00')
+                eligible_players = []
+                
+                # Calculate pot size and eligible players
+                for p, total_bet in sorted_bets.items():
+                    if total_bet >= bet_amount:
+                        pot_amount += bet_amount - previous_bet_level
+                        eligible_players.append(p)
+                
+                if pot_amount > Decimal('0.00'):
+                    pot = Pot(
+                        pot_number=current_pot_number,
+                        amount=pot_amount
+                    )
+                    
+                    if len(eligible_players) == 1:
+                        # Only one eligible player, they win this pot
+                        winner = eligible_players[0]
+                        winner.mucks = False
+                        winner.stack += pot_amount
+                        winner.add_winnings(win_amount=pot_amount)
+                        pot.add_player(winner)
+                        self.logs.append(f"{winner.name} won {pot_amount/self.big_blind} BB")
+                    else:
+                        # Find winners among eligible players
+                        eligible_hands = {
+                            p: p.cards for p in eligible_players
+                        }
+                        winners_hands = find_winners(eligible_hands, self.board_cards)
+                        portion = pot_amount / len(winners_hands)
+                        
+                        for winner, hand_name in winners_hands:
+                            winner.mucks = False
+                            winner.stack += portion
+                            winner.add_winnings(win_amount=portion)
+                            pot.add_player(winner)
+                            self.logs.append(f"{winner.name} won {portion/self.big_blind} BB with {hand_name}")
+                    
+                    self.current_hand.add_pot(pot)
+                    current_pot_number += 1
+                
+                previous_bet_level = bet_amount
 
     def end_game(self) -> None:
         # Give back the uncalled amount
@@ -439,6 +465,7 @@ class Table:
         # Reset the current_hand and active_players
         self.current_hand = None
         self.active_players = CircularLinkedList()
+        self.playing_players = None 
 
         # Set to uncactive the players for which their stack is 0: 
         for player in self.players.values():
