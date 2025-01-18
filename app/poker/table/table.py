@@ -229,8 +229,9 @@ class Table:
         if street == "Showdown":
             self.end_game()
         else: 
-            self.agressor = self.get_next_player(self.dealer).id
-            self.current_turn = self.get_next_player(self.dealer).id
+            if len(self.playing_players) != 0 : 
+                self.agressor = self.get_next_player(self.dealer).id
+                self.current_turn = self.get_next_player(self.dealer).id
 
             if street == "Flop":
                 num_cards = 3
@@ -257,6 +258,7 @@ class Table:
         if total_bet >= max_bet:
             return True, max_bet
         return False, total_bet 
+
 
     def action(self, action_type:str, amount: Optional[Decimal] = Decimal('0.00')) -> None:
         player = self.get_current_player()
@@ -293,9 +295,6 @@ class Table:
             case "Fold" : #The player folds their cards.
                 self.active_players.remove(player.seat)
                 self.playing_players.remove(player.seat)
-                if len(self.active_players) == 1:
-                    self.end_game()
-                    return
             case "Check" : #The player checks.
                 if self.current_bet != Decimal('0.00'):
                     if player.id != self.bb_player.id or self.current_bet != self.big_blind:
@@ -343,6 +342,14 @@ class Table:
         self.current_round.add_action(new_action)
 
         agressor_player = self.players.get(self.agressor,None)
+
+        if len(self.active_players) == 1:
+            self.end_game()
+            return
+
+        if len(self.playing_players) == 0 :
+            self.next_round()
+            return
 
         next_player = self.get_next_player(player)
         next_active_player= self.get_next_active_player(player)

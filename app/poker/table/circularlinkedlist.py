@@ -49,6 +49,9 @@ class CircularLinkedList:
 
     def remove(self, position: int):
         current = self.head
+        if current is None:
+            raise Exception("Error while removing, the list is empty")
+
         while True:
             if current.position == position:
                 self.len -= 1 
@@ -72,6 +75,8 @@ class CircularLinkedList:
     # Get the next element after the given position. The position doesn't have to be in the list
     def get_next(self, position: int, skip: int = 0):
         current = self.head
+        if current is None:
+            raise Exception("Error while getting next, the list is empty")
         while current.position <= position:
             current = current.next
             # If we go back to self, it means that the given position is higher than the highest position, in that case return the head
