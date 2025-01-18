@@ -1,7 +1,6 @@
 <div id="poker-table" hx-swap-oob="innerHTML">
   <h3>{{general_data.table_name}} table</h3>
   <div id="stakes"> Blinds: {{general_data.small_blind_amount}} / {{general_data.big_blind_amount}}</div>
-  <div id="street">Phase: {{gamestate.phase}}</div>
   <div class="game-container">
     {% for player in gamestate.players %}
     <div class="player"
@@ -46,7 +45,11 @@
     </div>
   </div>
 
-  <div class="log">{{gamestate.log}}</div>
+  <div class="logs">
+    {% for log in gamestate.logs %}
+    <p> {{log}} </p>
+    {% endfor %}
+  </div>
 
     <!-- Action Buttons -->
 

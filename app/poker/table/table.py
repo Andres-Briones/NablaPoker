@@ -12,7 +12,7 @@ class Table:
     def __init__(self, table_id: int, table_name: str, small_blind: Decimal, big_blind: Decimal, table_size: int, verbose: bool = False):
         self.table_id: int = table_id
         self.table_name: str = table_name
-        self.table_size = table_size,
+        self.table_size = table_size
         self.small_blind: Decimal = small_blind
         self.big_blind: Decimal = big_blind
         self.players: Dict[int, Player] = {}
@@ -20,13 +20,12 @@ class Table:
         self.active_players = CircularLinkedList()
         self.board_cards: List[Card] = []
         self.pot: Decimal = Decimal('0.00')
+        self.uncalled_amount: Decimal = Decimal('0.00')
         self.current_bet: Decimal = Decimal('0.00')
         self.current_turn: int = None
         self.current_round: Round = None
         self.current_hand: Hand = None
-        self.log = ""
-        # TODO : Set description for each action made into the log and must important the winnings descriptions
-        self.phase = None # Can be None, "Game", "Showdown" or "Accept"
+        self.logs: List[str] = []
         self.streets = ["Preflop", "Flop", "Turn", "River", "Showdown"]
         self.deck: Deck = None
         self.verbose = True
@@ -60,25 +59,6 @@ class Table:
             self.available_seats.sort()
         if len(self.active_players):
             self.end_game()
-
-
-    def start_round(self, street: str) -> None:
-        if street not in possible_streets:
-            raise ValueError(f"Invalid street: {street}")
-
-        if street == "Flop":
-            num_cards = 3
-        elif street in ["Turn", "River"]:
-            num_cards = 1
-        else:
-            num_cards = 0
-
-        if num_cards > 0:
-            new_cards = self.deck.draw(num_cards)
-            self.board_cards.extend(new_cards)
-            round_ = Round(round_id=len(self.current_hand.rounds), street=street)
-            round_.set_community_cards([str(card) for card in new_cards])
-            self.current_hand.add_round(round_)
 
 
     def get_active_seats(self) -> List: 
@@ -129,11 +109,6 @@ class Table:
         return cards
 
 
-    def deal_cards(self) -> None:
-        for _ in range(len(self.active_players)):
-            self.action("Dealt Cards")
-
-
     def deal_hole_cards(self) -> List[Card]:
         ''' Deal two cards the the current player '''
         player = self.get_current_player()
@@ -161,8 +136,7 @@ class Table:
         if self.current_hand is not None:
             raise Exception("Finish the hand before starting a new one")
 
-        self.phase = "Game"
-        self.log = ""
+        self.logs = []
         # Reset the game state for all players (Not only the active ones)
         # Add active players to the players list
         self.active_players = CircularLinkedList()
@@ -198,7 +172,10 @@ class Table:
 
         # Deal cards to all active players startin by the small_blind
         self.current_turn = self.get_next_player(self.dealer).id # Set the next turn to the SB 
-        self.deal_cards()
+
+        # Deal cards
+        for _ in range(len(self.active_players)):
+            self.action("Dealt Cards")
 
         if len(self.active_players) == 2:
             self.current_turn = self.dealer.id # Set the next turn to the Dealer
@@ -220,9 +197,21 @@ class Table:
             big_blind_amount=self.big_blind)
 
 
+    def give_back_uncalled_amount(self) -> None:
+        if self.uncalled_amount != Decimal('0.00') : 
+            agressor = self.players[self.agressor]
+            agressor.stack += self.uncalled_amount
+            self.pot -= self.uncalled_amount
+            self.logs.append(f"The uncalled amount of {self.uncalled_amount/self.big_blind} BB went back to {agressor.name}")
+            self.uncalled_amount = Decimal('0.00')
+
+
     def next_round(self) -> None:
         # Add previous round to the current hand
         self.current_hand.add_round(self.current_round)
+
+        # Give back uncalled amount (can happend in all-in situations)
+        self.give_back_uncalled_amount()
 
         # Reset bets 
         self.current_bet = Decimal('0.00')
@@ -230,11 +219,11 @@ class Table:
             player.bet_amount = Decimal('0.00')
 
         # Create new round
-        street = self.streets.pop(0)
+        street = self.streets.pop(0) 
         self.current_round = Round(round_id = len(self.current_hand.rounds), street = street)
 
         if street == "Showdown":
-            self.showdown()
+            self.end_game()
         else: 
             self.agressor = self.get_next_player(self.dealer).id
             self.current_turn = self.get_next_player(self.dealer).id
@@ -252,16 +241,29 @@ class Table:
             current_player = None if self.current_turn is None else self.players[self.current_turn].name
             print(f"Current turn: {current_player}")
 
+        # Check if all players (or except one) are all-in, in that case go to next round and repeat until showdown
+        active_non_all_in_players = [p for p in self.active_players if not p.is_all_in]
+        if len(active_non_all_in_players) <= 1 and self.current_hand:
+            self.next_round()
+
+
+    def check_if_all_in(self, amount:Decimal) -> bool :
+        player = self.get_current_player()
+        if amount >= player.stack:
+            new_amount = player.stack
+            player.is_all_in =  True
+            return True, new_amount
+        return False, amount
 
     def action(self, action_type:str, amount: Optional[Decimal] = Decimal('0.00')) -> None:
         player = self.get_current_player()
-        player.is_all_in = player.stack == amount
+
+        all_in = False
 
         new_action = Action(
             action_id = len(self.current_round.actions),
             player_id = player.id, 
-            action_type = action_type,
-            is_all_in = player.is_all_in) 
+            action_type = action_type)
 
         match action_type:
             case "Dealt Cards" : #Player is dealt cards.
@@ -275,13 +277,16 @@ class Table:
                 self.set_bet(amount)
             case "Post SB" : #The player posts the small blind.
                 amount = self.small_blind
+                all_in, amount = self.check_if_all_in(amount)
                 self.set_bet(amount)
                 self.current_bet = amount
             case "Post BB" : #The player posts the big blind.
                 amount = self.big_blind
+                all_in, amount = self.check_if_all_in(amount)
                 self.set_bet(amount)
                 self.current_bet = amount
                 self.agressor = player.id
+                self.uncalled_amount = amount
             case "Fold" : #The player folds their cards.
                 self.active_players.remove(player.seat)
                 if len(self.active_players) == 1:
@@ -294,20 +299,20 @@ class Table:
             case "Bet" : #The player bets in an un-bet/unraised pot.
                 if self.current_bet != Decimal('0.00'):
                     raise Exception("The player can't bet because the current bet is not zero")
+                all_in, amount = self.check_if_all_in(amount)
                 self.set_bet(amount)
                 self.current_bet = amount
                 self.agressor = player.id
+                self.uncalled_amount = amount
             case "Raise" : #The player makes a raise.
                 if self.current_bet == Decimal('0.00'):
                     raise Exception("The player can't raise because the current bet is zero")
+                all_in, amount = self.check_if_all_in(amount)
                 total_raise = player.bet_amount + amount
-                print("Previous bet amount ", player.bet_amount)
-                print("New bet amount ", amount) 
-                print("Total raise = ", total_raise)
-                print("Minimum raise = ",  self.current_bet + self.small_blind)
                 if total_raise < self.current_bet + self.small_blind :
                     raise Exception("The total raised amount should be greater or equal to the previous raise plus the small blind")
                 self.set_bet(amount)
+                self.uncalled_amount = total_raise - self.current_bet
                 self.current_bet = total_raise
                 self.agressor = player.id
             case "Call" : #The player calls a bet/raise.
@@ -316,100 +321,126 @@ class Table:
                 if self.current_bet == player.bet_amount: # Can happen when the player is BB and everyone fold or call preflop
                     raise Exception("Calling here is useless because the player bet is equal the the maximum bet")
                 amount = self.current_bet - player.bet_amount
-                if amount >= player.stack:
-                    amount = player.stack
-                    player.is_all_in = True
-                    new_action.is_all_in = True
+                all_in, amount = self.check_if_all_in(amount)
+                if all_in :
+                    self.uncalled_amount -= amount 
+                else :
+                    self.uncalled_amount = Decimal("0.00")
                 self.set_bet(amount)
 
         new_action.amount = amount
+        if all_in : new_action.is_all_in = True
         self.current_round.add_action(new_action)
 
         agressor_player = self.players.get(self.agressor,None)
         if self.verbose:
-            string = f"{player.name} : {action_type}"
+            string = f"\n{player.name} : {action_type}"
             if amount > 0: string += f" {amount}"
             if action_type == "Dealt Cards":  string += f" {player.cards}"
             print(string)
 
             print("Current bet :", self.current_bet)
             print("Agressor :", agressor_player.name if agressor_player else None)
+            print("Uncalled amount :", self.uncalled_amount)
 
         next_player = self.get_next_player(player)
+        while next_player.is_all_in:
+            next_player = self.get_next_player(next_player)
+            if next_player.id == player.id:
+                self.next_round()
+                return
+
         if action_type in ["Dealt Cards", "Post SB", "Post BB"]: 
             self.current_turn = next_player.id
-        else : 
-            if self.current_round.street == "Preflop":
-                if next_player.id == self.agressor:
-                    if next_player.id == self.bb_player.id and self.current_bet == self.big_blind: 
-                        self.current_turn= next_player.id
-                    else:
-                        self.next_round()
-                elif player.id == self.agressor and player.id == self.bb_player.id and action_type not in ["Raise"]:
+            return
+
+        if self.current_round.street == "Preflop":
+            if next_player.id == self.agressor:
+                if next_player.id == self.bb_player.id and self.current_bet == self.big_blind: 
+                    self.current_turn= next_player.id
+                else:
                     self.next_round()
-                else : 
-                    self.current_turn = next_player.id
+            elif player.id == self.agressor and player.id == self.bb_player.id and action_type not in ["Raise"]:
+                self.next_round()
             else : 
-                if next_player.id == self.agressor:
-                    self.next_round()
-                else : 
-                    self.current_turn = next_player.id
+                self.current_turn = next_player.id
+            return
 
+        # For post flop actions
+        if next_player.id == self.agressor:
+            self.next_round()
+        else : 
+            self.current_turn = next_player.id
 
-    def showdown(self) -> None:
-        self.phase = None
-        self.log = ""
-        for player in self.active_players:
-            player.mucks = False
-        self.end_game()
+        return
+
 
     def end_game(self) -> None:
+        # Give back the uncalled amount
+        self.give_back_uncalled_amount()
+
+        # Calculate total bets for each player (starting_stack - current_stack)
+        total_bets = {
+            player: player.starting_stack - player.stack 
+            for player in self.active_players
+        }
+        # Sort by bet amount in ascending order
+        sorted_bets = dict(sorted(total_bets.items(), key=lambda x: x[1]))
+
+        if self.verbose:
+            print("\nTotal bets:")
+            for player, amount in sorted_bets.items():
+                print(f"{player.name}: {amount}")
+
+
+        # Set winnings
+        pot = Pot(pot_number = 1, amount = self.pot)
+        self.current_hand.add_pot(pot)
+        portion = self.pot/len(self.active_players) # Lossing players are removed from active players
+        winners : List[Players] = []
+        if len(self.active_players) == 1:
+            for player in self.active_players : # The only one
+                self.logs.append(f"{player.name} won {portion/self.big_blind} BB")
+                winners.append(player)
+        else :
+            # Determine the winners 
+            active_players_cards = {
+                player: player.cards 
+                for player in self.active_players
+            }
+            winners_hands =  find_winners(active_players_cards, self.board_cards)
+            for player, hand_name in winners_hands:
+                self.logs.append(f"{player.name} won {portion/self.big_blind} BB with {hand_name}")
+                winners.append(player)
+
+        for player in winners:
+            # For winning players show their hands
+            player.mucks = False
+            player.stack += portion
+            self.pot -= portion
+            player.add_winnings(win_amount = portion)
+            pot.add_player(player)
+
+        self.current_hand.add_pot(pot)
+
         # Reset bets
-        self.log = ""
         self.current_bet = Decimal('0.00')
         for player in self.active_players:
             player.bet_amount = Decimal('0.00')
         self.current_turn = None
         self.current_round = None
-        self.phase = None
-        self.set_winnings()
+
+        # Reset the current_hand and active_players
         self.current_hand = None
         self.active_players = CircularLinkedList()
 
-
-    def determine_winners(self) -> List[Tuple[Player, str]]:
-        active_players_cards = {
-            player: player.cards 
-            for player in self.active_players
-        }
-        return find_winners(active_players_cards, self.board_cards)
+        # Set to uncactive the players for which their stack is 0: 
+        for player in self.players.values():
+            if player.stack == 0 :
+                player.status = "Unactive"
 
 
-    def set_winnings(self) -> None:
-        pot = Pot(pot_number = 1, amount = self.pot)
-        portion = self.pot/len(self.active_players) # Lossing players are removed from active players
-        self.log = ""
-        if len(self.active_players) == 1:
-            for player in self.active_players:
-                player.stack += portion
-                self.pot -= portion
-                player.add_winnings(win_amount = portion)
-                pot.add_player(player)
-                self.log +=f"{player.name} won {portion/self.big_blind} BB"
-        else :
-            winners_hands = self.determine_winners()
-            for player, hand_name in winners_hands:
-                player.stack += portion
-                self.pot -= portion
-                player.add_winnings(win_amount = portion)
-                pot.add_player(player)
-                self.log +=f"{player.name} won {portion/self.big_blind} BB with {hand_name}\n"
-            self.current_hand.add_pot(pot)
-
-
-
-
-    def get_display_data(self, player_id):
+    def get_display_data(self, player_id:int):
         this_player = self.players[player_id]
 
         general_data = {
@@ -430,8 +461,7 @@ class Table:
             "current_turn_name": current_player.name if current_player else None,
             "can_bet": self.current_bet == Decimal('0.00'),
             "can_check": self.current_bet == Decimal('0.00') or self.agressor == current_player.id,
-            "phase": self.phase,
-            "log": self.log,
+            "logs": self.logs,
         }
 
         used_seats = self.get_used_seats()
